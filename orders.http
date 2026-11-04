@@ -1,0 +1,81 @@
+@baseUrl = http://localhost:8080
+
+### 1. Utwórz klienta
+POST {{baseUrl}}/customers
+Content-Type: application/json
+
+{"name": "Jan Kowalski"}
+
+> {% client.global.set("customerId", response.body.id); %}
+
+### 2. Lista klientów
+GET {{baseUrl}}/customers
+
+### 3. Utwórz zamówienie i zapamiętaj identyfikator
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}},
+  "productName": "Książka",
+  "quantity": 2,
+  "unitPrice": 19.99
+}
+
+> {% client.global.set("orderId", response.body.id); %}
+
+### 4. Stan bieżący — 200
+GET {{baseUrl}}/orders/{{orderId}}
+
+### 5. Historia utworzenia — początkowo może być []; ponów po chwili
+GET {{baseUrl}}/audit/orders/{{orderId}}
+
+### 6. Zmień nazwę klienta
+PUT {{baseUrl}}/customers/{{customerId}}
+Content-Type: application/json
+
+{"name": "Anna Nowak"}
+
+### 7. Zmień zamówienie
+PUT {{baseUrl}}/orders/{{orderId}}
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}},
+  "productName": "Notes",
+  "quantity": 3,
+  "unitPrice": 5.50
+}
+
+### 8. Stan bieżący: Anna, Notes, 16.50
+GET {{baseUrl}}/orders/{{orderId}}
+
+### 9. Historia: Jan, Książka, 39.98
+GET {{baseUrl}}/audit/orders/{{orderId}}
+
+### 10. Klient z zamówieniem — 409
+DELETE {{baseUrl}}/customers/{{customerId}}
+
+### 11. Błędne dane — 400, bez zamówienia i zdarzenia
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{"customerId": {{customerId}}, "productName": "", "quantity": 0, "unitPrice": -1}
+
+### 12. Nieznany klient — 404
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{"customerId": 999999999, "productName": "Notes", "quantity": 1, "unitPrice": 5.00}
+
+### 13. Usuń zamówienie
+DELETE {{baseUrl}}/orders/{{orderId}}
+
+### 14. Teraz można usunąć klienta — 204
+DELETE {{baseUrl}}/customers/{{customerId}}
+
+### 15. Bieżące zamówienie — 404
+GET {{baseUrl}}/orders/{{orderId}}
+
+### 16. Historia nadal istnieje — 200
+GET {{baseUrl}}/audit/orders/{{orderId}}
